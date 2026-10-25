@@ -126,10 +126,13 @@ function zones(sqft,m2,C,T,lat){
   <p class="src">Zone shares are a planning assumption (shown), multiplied by your plot area. Diagram is schematic, not to scale with your boundary.</p></section>`;
 }
 // ---------- Soil ----------
-async function soil(g){
-  for(const [dl,dn] of [[0,0],[0.02,0],[-0.02,0],[0,0.02],[0,-0.02],[0.045,0],[-0.045,0]]){
-    try{const o=await soil1({lat:g.lat+dl,lon:g.lon+dn});o.off=Math.round(Math.hypot(dl,dn*Math.cos(g.lat*Math.PI/180))*111);o.at=`${f(g.lat+dl,3)}, ${f(g.lon+dn,3)}`;return o}catch(e){if(!/no soil/.test(e.message))throw e}}
-  throw new Error('no soil data within ~5 km (built-up area or water)');
+async function soil(g){ // SoilGrids masks built-up areas: try the point, then rings at ~5, 10, 20 km in parallel; use the nearest with data
+  const k=Math.cos(g.lat*Math.PI/180),pts=[[0,0]];
+  for(const r of[0.045,0.09,0.18])for(let a=0;a<360;a+=90)pts.push([r*Math.cos(a*Math.PI/180),r*Math.sin(a*Math.PI/180)/k]);
+  const res=await Promise.allSettled(pts.map(([dl,dn])=>soil1({lat:g.lat+dl,lon:g.lon+dn}).then(o=>({...o,off:Math.round(Math.hypot(dl,dn*k)*111),at:`${f(g.lat+dl,3)}, ${f(g.lon+dn,3)}`}))));
+  const ok=res.filter(r=>r.status==='fulfilled').map(r=>r.value).sort((a,b)=>a.off-b.off);
+  if(ok.length)return ok[0];
+  throw new Error(res.some(r=>/no soil/.test(r.reason?.message))?'no soil data within ~20 km (built-up area or water)':'SoilGrids did not respond');
 }
 async function soil1(g){
   const r=await J(`https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${g.lon}&lat=${g.lat}&property=clay&property=sand&property=silt&property=phh2o&property=soc&depth=0-5cm&depth=5-15cm&depth=15-30cm&value=mean`,60000);
