@@ -127,6 +127,11 @@ function zones(sqft,m2,C,T,lat){
 }
 // ---------- Soil ----------
 async function soil(g){
+  for(const [dl,dn] of [[0,0],[0.02,0],[-0.02,0],[0,0.02],[0,-0.02],[0.045,0],[-0.045,0]]){
+    try{const o=await soil1({lat:g.lat+dl,lon:g.lon+dn});o.off=Math.round(Math.hypot(dl,dn*Math.cos(g.lat*Math.PI/180))*111);o.at=`${f(g.lat+dl,3)}, ${f(g.lon+dn,3)}`;return o}catch(e){if(!/no soil/.test(e.message))throw e}}
+  throw new Error('no soil data within ~5 km (built-up area or water)');
+}
+async function soil1(g){
   const r=await J(`https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${g.lon}&lat=${g.lat}&property=clay&property=sand&property=silt&property=phh2o&property=soc&depth=0-5cm&depth=5-15cm&depth=15-30cm&value=mean`,60000);
   const o={};r.properties.layers.forEach(L=>{const v=L.depths.map(d=>d.values.mean).filter(x=>x!=null);o[L.name]=v.length?v.reduce((a,b)=>a+b,0)/v.length/L.unit_measure.d_factor:null});
   if(o.clay==null)throw new Error('no soil data at this point (water/urban?)');
@@ -135,7 +140,7 @@ async function soil(g){
 function texture(c,s,si){if(c>=40)return si>=40?'silty clay':s>45?'sandy clay':'clay';if(c>=27)return s>45?'sandy clay loam':si>=40?'silty clay loam':'clay loam';if(c>=20&&s>45)return'sandy clay loam';if(s>=85)return'sand';if(s>=70)return'loamy sand';if(s>52)return'sandy loam';if(si>=50)return'silt loam';return'loam'}
 function soilHTML(S){const t=texture(S.clay,S.sand,S.silt);
   return`<section class="card"><h2>Soil (top 30 cm)</h2><div class="grid"><div class="k">Texture<b>${t}</b>clay ${f(S.clay)}% · sand ${f(S.sand)}% · silt ${f(S.silt)}%</div><div class="k">pH (water)<b>${f(S.phh2o)}</b>${S.phh2o<5.5?'acidic — add wood ash/lime':S.phh2o>7.8?'alkaline — add compost, mulch':'good for most crops'}</div><div class="k">Organic carbon<b>${f(S.soc)} g/kg</b>${S.soc<10?'low — mulch, compost, cover crops':'moderate/good'}</div></div>
-  <p class="src">Source: ISRIC SoilGrids v2.0 (250 m modelled estimate), mean of 0–5, 5–15, 15–30 cm. Texture by USDA triangle (simplified). Test your actual soil before building.</p></section>`}
+  <p class="src">Source: ISRIC SoilGrids v2.0 (250 m modelled estimate), mean of 0–5, 5–15, 15–30 cm. Texture by USDA triangle (simplified).${S.off?` <b>No data at the exact point (SoilGrids masks built-up areas); values are from the nearest point with data, ${S.off} km away (${S.at}).</b>`:''} Test your actual soil before building.</p></section>`}
 // ---------- Plants ----------
 const PL={ // [name, season key]; keys: rains, prerain, cool, dry, spring, autumn
  tropdry:[['Neem (Azadirachta indica)','rains'],['Tamarind','rains'],['Jamun (Syzygium cumini)','rains'],['Amla / Indian gooseberry','rains'],['Moringa / drumstick','prerain'],['Custard apple','rains'],['Ber (Ziziphus mauritiana)','rains'],['Pongamia (Karanj)','rains'],['Bael','rains'],['Curry leaf','rains'],['Mango','rains'],['Pigeon pea (toor dal)','rains'],['Finger millet (ragi)','rains'],['Sorghum (jowar)','rains'],['Chickpea','cool'],['Tulsi (holy basil)','prerain'],['Lemongrass','rains'],['Vetiver (on contours)','rains']],
@@ -150,7 +155,7 @@ function plants(C,lat){
   const dry=[...order].sort((a,b)=>M[a].p-M[b].p).slice(0,3).sort((a,b)=>a-b);
   const first=wet.length?(wet.find(i=>!wet.includes((i+11)%12))??wet[0]):null;
   const S={rains:first!=null?`${MON[first]}–${MON[(first+1)%12]} (start of rains)`:'when irrigation is available',prerain:first!=null?`${MON[(first+11)%12]}–${MON[first]} (just before rains)`:'early warm season',
-    cool:`${MON[cool[0]]}–${MON[cool[2]]} (coolest months)`,dry:`${MON[dry[0]]}–${MON[dry[2]]} (driest months, with water)`,spring:N?'Mar–May (spring, after frost)':'Sep–Nov (spring, after frost)',autumn:N?'Oct–Nov (autumn)':'Apr–May (autumn)'};
+    cool:`${cool.map(i=>MON[i]).join(', ')} (coolest months)`,dry:`${dry.map(i=>MON[i]).join(', ')} (driest months, with water)`,spring:N?'Mar–May (spring, after frost)':'Sep–Nov (spring, after frost)',autumn:N?'Oct–Nov (autumn)':'Apr–May (autumn)'};
   return`<section class="card"><h2>Plants & planting calendar</h2><p>Climate type <b>${C.type.label}</b>. ${list.length} suggestions:</p>
   <table><tr><th>#</th><th>Plant</th><th>When to plant here</th></tr>${list.map((p,i)=>`<tr><td>${i+1}</td><td>${p[0]}</td><td>${S[p[1]]}</td></tr>`).join('')}</table>
   <p class="src">General guidance from a built-in rule set for this climate type (South-Asian examples for tropical/semi-arid); planting months are derived from your site's climate data (first wet month ≥60 mm, coolest/driest months). Confirm local nativeness with the GBIF list below and local nurseries.</p></section>`}
