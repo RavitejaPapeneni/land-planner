@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: land-planner
+    runtime: static
+    buildCommand: echo static
+    staticPublishPath: public
+    headers:
+      - path: "/*"
+        name: X-Content-Type-Options
+        value: nosniff

@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Land Planner – free permaculture site report</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css"></head><body>
+<header><h1>🌱 Land Planner</h1><p>Free permaculture site report for any place on Earth. Built only from open data — every number comes from an API or a shown formula.</p></header>
+<main>
+<section class="card" id="inputs">
+<label>Place name or "lat, lon" <input id="q" placeholder="Hyderabad, India  or  17.385, 78.4867"></label>
+<div class="row"><label>Plot size <input id="size" type="number" value="10000" min="1" step="any"></label>
+<label>Unit <select id="unit"><option value="sqft">sq ft</option><option value="acre">acres</option></select></label>
+<button id="go">Make report</button></div>
+<p class="hint">Or click the map to drop a pin.</p>
+<div id="map"></div><p id="status"></p></section>
+<div id="report"></div>
+<section class="card"><h2>Data sources</h2><ul>
+<li>Geocoding: <a href="https://nominatim.openstreetmap.org">OpenStreetMap Nominatim</a> (© OpenStreetMap contributors, ODbL)</li>
+<li>Map tiles: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> via <a href="https://leafletjs.com">Leaflet</a></li>
+<li>Climate: <a href="https://open-meteo.com/en/docs/historical-weather-api">Open-Meteo Historical Weather API</a> (ERA5, last full calendar year, CC BY 4.0)</li>
+<li>Elevation &amp; slope: <a href="https://open-meteo.com/en/docs/elevation-api">Open-Meteo Elevation API</a> (Copernicus DEM 90 m)</li>
+<li>Soil: <a href="https://www.isric.org/explore/soilgrids">ISRIC SoilGrids v2.0</a> (0–30 cm, CC BY 4.0)</li>
+<li>Species: <a href="https://www.gbif.org">GBIF occurrence API</a> (records within ~10 km; recorded nearby, not guaranteed native)</li>
+<li>Sun path: NOAA-style solar position formula computed in your browser.</li>
+<li>Plant list, calendar, house notes: built-in general guidance by climate type (Köppen-style rules from the climate data). Check locally.</li></ul></section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="app.js"></script></body></html>
